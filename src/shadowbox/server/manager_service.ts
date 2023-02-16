@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import * as randomstring from 'randomstring';
 
 import * as crypto from 'crypto';
 import * as ipRegex from 'ip-regex';
@@ -50,6 +51,11 @@ function accessKeyToApiJson(accessKey: AccessKey) {
       })
     ),
   };
+}
+
+function generatePassword(): string {
+  // 22 * log2(62) = 131 bits of entropy.
+  return randomstring.generate(22);
 }
 
 // Type to reflect that we receive untyped JSON request parameters.
@@ -324,7 +330,18 @@ export class ShadowsocksManagerService {
             `Expected a string encryptionMethod, instead got ${encryptionMethod} of type ${
                 typeof encryptionMethod}`));
       }
-      const accessKeyJson = accessKeyToApiJson(await this.accessKeys.createNewAccessKey(encryptionMethod));
+      let password = req.params.password;
+      // if password is undefined, generate a random password
+      if (password === undefined) {
+        password = generatePassword();
+      }
+      if (typeof password !== 'string') {
+        return next(new restifyErrors.InvalidArgumentError(
+            {statusCode: 400},
+            `Expected a string password, instead got ${password} of type ${
+                typeof password}`));
+      }
+      const accessKeyJson = accessKeyToApiJson(await this.accessKeys.createNewAccessKey(encryptionMethod, password));
       res.send(201, accessKeyJson);
       logging.debug(`createNewAccessKey response ${JSON.stringify(accessKeyJson)}`);
       return next();

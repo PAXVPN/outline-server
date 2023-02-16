@@ -62,11 +62,6 @@ class ServerAccessKey implements AccessKey {
   ) {}
 }
 
-// Generates a random password for Shadowsocks access keys.
-function generatePassword(): string {
-  // 22 * log2(62) = 131 bits of entropy.
-  return randomstring.generate(22);
-}
 
 function makeAccessKey(hostname: string, accessKeyJson: AccessKeyStorageJson): AccessKey {
   const proxyParams = {
@@ -166,11 +161,10 @@ export class ServerAccessKeyRepository implements AccessKeyRepository {
     this.portForNewAccessKeys = port;
   }
 
-  async createNewAccessKey(encryptionMethod?: string): Promise<AccessKey> {
+  async createNewAccessKey(encryptionMethod?: string, password?: string): Promise<AccessKey> {
     const id = this.keyConfig.data().nextId.toString();
     this.keyConfig.data().nextId += 1;
     const metricsId = uuidv4();
-    const password = generatePassword();
     encryptionMethod = encryptionMethod || this.NEW_USER_ENCRYPTION_METHOD;
     // Validate encryption method.
     if (!isValidCipher(encryptionMethod)) {
